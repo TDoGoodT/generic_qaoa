@@ -6,15 +6,8 @@ authors = ["Snir Bachar <snir@quantum-machines.co>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
-numpy = "^1.23.1"
-scipy = "^1.9.0"
 qiskit = "^0.37.1"
-matplotlib = "^3.5.2"
-jupyter = "^1.0.0"
-ipympl = "^0.9.1"
 qiskit-ibm-runtime = "^0.6.2"
-pylatexenc = "^2.10"
-mypy = "^0.971"
 
 
 
