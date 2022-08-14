@@ -1,10 +1,12 @@
+from copy import copy
+
 from scipy.optimize import minimize
 
 import dataclasses
-from typing import List, Callable, Tuple, Any
-from qiskit_ibm_runtime import QiskitRuntimeService
+from typing import List, Callable
+from qiskit.providers import Backend
 import numpy as np
-from qiskit import Aer, IBMQ
+from qiskit import Aer, IBMQ, execute
 
 from qaoa_circuit import QaoaCircuitFactory
 
@@ -23,12 +25,12 @@ class GenericQaoa(object):
         return self.qaoa_circuit_component.results[-1]
 
     @property
-    def circuit(self):
-        return self.qaoa_circuit_component.circuit
+    def qaoa_circuit(self):
+        return self.qaoa_circuit_component.qaoa_circuit
 
     def run(self):
         execute_circ = self.qaoa_circuit_component.get_execution_function()
-        x0 = self.qaoa_circuit_component.best_angles
+        x0 = self.qaoa_circuit_component.get_best_angles()
         result = minimize(fun=execute_circ,
                           x0=x0,
                           method=self.qaoa_circuit_component.minimize_method)
@@ -50,15 +52,24 @@ class QaoaCircuitComponent(object):
     _minimize_method: str = 'COBYLA'
     _simulate: bool = True
     _shots: int = 512
-    _backend = None
+    _backend: Backend = None
+    _best_angles: List = None
+    _circuit: QaoaCircuitFactory.QaoaCircuit = None
     results: List[QaoaResults] = dataclasses.field(default_factory=lambda: [])
 
     def __post_init__(self):
         if self._simulate:
             self._backend = Aer.get_backend(SIMULATOR_ENGINE)
         else:
-            provider = IBMQ.load_account()
-            self._backend = provider.backends.simulator_statevector
+            IBMQ.load_account()
+            provider = IBMQ.get_provider(group='open')
+            from qiskit.providers.ibmq import least_busy
+
+            small_devices = provider.backends(filters=lambda x: x.configuration().n_qubits == len(self._qbits)
+                                                                and not x.configuration().simulator)
+
+            self._backend = least_busy(small_devices)
+            print(f"chosen backend={self._backend}")
         self._backend.shots = self._shots
 
     @property
@@ -69,19 +80,15 @@ class QaoaCircuitComponent(object):
     def minimize_method(self):
         return self._minimize_method
 
-    @property
-    def best_angles(self):
-        best_angles = self._find_best_angles()
-        print(best_angles)
-        return best_angles
+    def get_best_angles(self):
+        if self._best_angles is None:
+            self._best_angles = self._find_best_angles()
+        return self._best_angles
 
     @property
-    def circuit(self):
-        angles = [0.] * 2 * self._p
-        return QaoaCircuitFactory.create_circuit(self._clauses,
-                                                 angles[:len(angles) // 2],
-                                                 angles[len(angles) // 2:],
-                                                 self._p, len(self._qbits))
+    def qaoa_circuit(self):
+        self._circuit = QaoaCircuitFactory.create_parameterized_circuit(self._clauses, self._p, len(self._qbits))
+        return self._circuit
 
     def get_execution_function(self, return_also_counts_histogram=False) -> Callable[[List], float]:
         def execution_function(angles: List):
@@ -89,7 +96,11 @@ class QaoaCircuitComponent(object):
                                                         angles[:len(angles) // 2],
                                                         angles[len(angles) // 2:],
                                                         self._p, len(self._qbits))
-            counts_histogram = self._backend.run(circuit).result().get_counts()
+            job = self._backend.run(circuit)
+            print(f"running circuit on {self._backend}")
+            job.wait_for_final_state()
+            print(f"done")
+            counts_histogram = job.result().get_counts()
             selected = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
             energy: float = sum([clause.objective(selected) for clause in self._clauses])
             self.results.append(QaoaResults(selected, counts_histogram))
@@ -101,7 +112,7 @@ class QaoaCircuitComponent(object):
 
     def _find_best_angles(self):
         """
-           Grid search on QAOA angles.
+           Grid search on QAOA angles. similar to the grid search from the VQF article.
 
            Returns:
                best_beta, best_gamma (floats): best values of the beta and gamma found.
@@ -109,15 +120,16 @@ class QaoaCircuitComponent(object):
         max_step = self._p
         best_betas = np.array([])
         best_gammas = np.array([])
-        for step in range(max_step + 1):
+        for step in range(1, max_step + 1):
             self._p = step
-            beta, gamma = self.one_step_grid_search(best_betas, best_gammas)
+            beta, gamma = self._one_step_grid_search(best_betas, best_gammas)
             best_betas = np.append(best_betas, beta)
             best_gammas = np.append(best_gammas, gamma)
         self._p = max_step
         return best_betas, best_gammas
 
-    def one_step_grid_search(self, _betas, _gammas):
+    def _one_step_grid_search(self, _betas, _gammas):
+        circuits_and_angles = []
         best_beta = None
         best_gamma = None
         best_counts = 0
@@ -126,18 +138,29 @@ class QaoaCircuitComponent(object):
         gamma_range = np.linspace(0, 2 * np.pi, self._grid_size)
         for beta in beta_range:
             for gamma in gamma_range:
-                energy, counts_histogram = self.get_execution_function(return_also_counts_histogram=True)(
-                    np.hstack([_betas, beta, _gammas, gamma]))
-                if energy == best_energy:
-                    selected_bitstring = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
-                    if best_counts < counts_histogram[selected_bitstring]:
-                        best_counts = counts_histogram[selected_bitstring]
-                        best_beta = beta
-                        best_gamma = gamma
-                if energy < best_energy:
-                    best_counts = 0
-                    best_energy = energy
+                circuit = copy(self.qaoa_circuit)
+                circuit = circuit.bind_parameters({circuit.betas: np.hstack([_betas, beta])})
+                circuit = circuit.bind_parameters({circuit.gammas: np.hstack([_gammas, gamma])})
+                circuits_and_angles.append((circuit, (beta, gamma)))
+        job = execute([circuits for circuits, angles in circuits_and_angles], backend=self.backend)
+        print(f"running circuit on {self._backend}")
+        job.wait_for_final_state()
+        print("done")
+        job_result = job.result()
+        for idx, (circuit, (beta, gamma)) in enumerate(circuits_and_angles):
+            counts_histogram = job_result.get_counts(idx)
+            selected = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
+            energy: float = sum([clause.objective(selected) for clause in self._clauses])
+            if energy == best_energy:
+                selected_bitstring = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
+                if best_counts < counts_histogram[selected_bitstring]:
+                    best_counts = counts_histogram[selected_bitstring]
                     best_beta = beta
                     best_gamma = gamma
+            if energy < best_energy:
+                best_counts = 0
+                best_energy = energy
+                best_beta = beta
+                best_gamma = gamma
 
         return best_beta, best_gamma
