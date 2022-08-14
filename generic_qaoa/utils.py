@@ -1,4 +1,6 @@
 from sympy import Symbol
+from qiskit.visualization import plot_histogram
+
 def get_pq_from_selected(p_dict, q_dict, selected ,symbol_to_qubit_index):
     for index, value in p_dict.items():
         if isinstance(value, int):

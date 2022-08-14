@@ -29,7 +29,7 @@ class GenericQaoa(object):
         return self.qaoa_circuit_component.qaoa_circuit
 
     def run(self):
-        execute_circ = self.qaoa_circuit_component.get_execution_function()
+        execute_circ = self.qaoa_circuit_component.get_execution_function(self.qaoa_circuit_component.simulate)
         x0 = self.qaoa_circuit_component.get_best_angles()
         result = minimize(fun=execute_circ,
                           x0=x0,
@@ -48,17 +48,18 @@ class QaoaCircuitComponent(object):
     _p: int
     _clauses: List
     _qbits: List
-    _grid_size: int
+    _grid_size: int = 5
     _minimize_method: str = 'COBYLA'
-    _simulate: bool = True
+    simulate: bool = True
     _shots: int = 512
     _backend: Backend = None
     _best_angles: List = None
     _circuit: QaoaCircuitFactory.QaoaCircuit = None
     results: List[QaoaResults] = dataclasses.field(default_factory=lambda: [])
 
+
     def __post_init__(self):
-        if self._simulate:
+        if self.simulate:
             self._backend = Aer.get_backend(SIMULATOR_ENGINE)
         else:
             IBMQ.load_account()
@@ -90,7 +91,7 @@ class QaoaCircuitComponent(object):
         self._circuit = QaoaCircuitFactory.create_parameterized_circuit(self._clauses, self._p, len(self._qbits))
         return self._circuit
 
-    def get_execution_function(self, return_also_counts_histogram=False) -> Callable[[List], float]:
+    def get_execution_function(self, return_also_counts_histogram=False, simulate=False) -> Callable[[List], float]:
         def execution_function(angles: List):
             circuit = QaoaCircuitFactory.create_circuit(self._clauses,
                                                         angles[:len(angles) // 2],
@@ -98,11 +99,12 @@ class QaoaCircuitComponent(object):
                                                         self._p, len(self._qbits))
             job = self._backend.run(circuit)
             print(f"running circuit on {self._backend}")
-            job.wait_for_final_state()
+            if not simulate:
+                job.wait_for_final_state()
             print(f"done")
             counts_histogram = job.result().get_counts()
             selected = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
-            energy: float = sum([clause.objective(selected) for clause in self._clauses])
+            energy: float = sum([clause.objective_func(selected) for clause in self._clauses])
             self.results.append(QaoaResults(selected, counts_histogram))
             if return_also_counts_histogram:
                 return energy, counts_histogram
@@ -150,7 +152,7 @@ class QaoaCircuitComponent(object):
         for idx, (circuit, (beta, gamma)) in enumerate(circuits_and_angles):
             counts_histogram = job_result.get_counts(idx)
             selected = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
-            energy: float = sum([clause.objective(selected) for clause in self._clauses])
+            energy: float = sum([clause.objective_func(selected) for clause in self._clauses])
             if energy == best_energy:
                 selected_bitstring = max(counts_histogram, key=lambda bitstring: counts_histogram[bitstring])
                 if best_counts < counts_histogram[selected_bitstring]:

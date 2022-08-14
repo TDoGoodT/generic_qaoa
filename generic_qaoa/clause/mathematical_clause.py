@@ -24,5 +24,5 @@ class MathematicalClause(Clause):
         self._hamiltonian: Symbol = _parse_mathmatical_caluse_into_hamiltonian(clause, symbol_to_qubit)
 
     @property
-    def clause(self) -> Symbol:
+    def only_z_clause(self) -> Symbol:
         return self._hamiltonian

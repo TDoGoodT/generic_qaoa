@@ -48,6 +48,9 @@ class QaoaCircuitFactory(object):
             control_index, target_index = z_to_qubit_index(control), z_to_qubit_index(target)
             self.cnot(control_index, target_index)
 
+        def _add_barrier(self, terms):
+            self.barrier([z_to_qubit_index(term) for term in terms])
+
         def _add_z_rotation(self, _arg, angle):
             if _arg.is_number:
                 return
@@ -56,11 +59,13 @@ class QaoaCircuitFactory(object):
             if len(_terms) == 1:
                 self.rz(angle, z_to_qubit_index(_terms[0]))
                 return
+            self._add_barrier(_terms)
             for i in range(len(_terms) - 1):
                 self._add_cnot(_terms[i], _terms[i + 1])
             self.rz(angle, z_to_qubit_index(_terms[-1]))
             for i in reversed(range(len(_terms) - 1)):
                 self._add_cnot(_terms[i], _terms[i + 1])
+            self._add_barrier(_terms)
 
         def add_hadamard(self, qubits_indexes):
             for q_idx in qubits_indexes:
@@ -68,7 +73,7 @@ class QaoaCircuitFactory(object):
 
         def add_prepare_gate(self, clauses, angle):
             for clause in clauses:
-                self._append_clause_to_circuit(clause.clause, angle)
+                self._append_clause_to_circuit(clause.only_z_clause, angle)
 
         def add_mix_gate(self, angle, qubits_indexes):
             for q_idx in qubits_indexes:

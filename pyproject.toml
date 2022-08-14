@@ -8,6 +8,7 @@ authors = ["Snir Bachar <snir@quantum-machines.co>"]
 python = ">=3.8,<3.11"
 qiskit = "^0.37.1"
 qiskit-ibm-runtime = "^0.6.2"
+jupyter = "^1.0.0"
 
 
 
