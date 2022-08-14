@@ -8,7 +8,7 @@ from qiskit.providers import Backend
 import numpy as np
 from qiskit import Aer, IBMQ, execute
 
-from qaoa_circuit import QaoaCircuitFactory
+from .qaoa_circuit import QaoaCircuitFactory
 
 SIMULATOR_ENGINE = 'aer_simulator'
 REAL_ENGINE = ''

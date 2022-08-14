@@ -4,7 +4,7 @@ from sympy import Symbol, Add, Mul
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from utils import z_to_qubit_index
+from ..utils import z_to_qubit_index
 
 
 class QaoaCircuitFactory(object):

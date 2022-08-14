@@ -13,6 +13,8 @@ matplotlib = "^3.5.2"
 jupyter = "^1.0.0"
 ipympl = "^0.9.1"
 qiskit-ibm-runtime = "^0.6.2"
+pylatexenc = "^2.10"
+mypy = "^0.971"
 
 
 

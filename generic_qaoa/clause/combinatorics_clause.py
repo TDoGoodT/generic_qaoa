@@ -1,6 +1,6 @@
 from sympy import symbols, Symbol
 
-from clause import Clause
+from .clause_interface import Clause
 from typing import List
 
 

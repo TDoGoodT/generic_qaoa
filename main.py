@@ -3,12 +3,10 @@ import numpy as np
 import qiskit
 from qiskit.visualization import plot_histogram
 
-from combinatorics_clause import CombinatoricsClause
-from utils import get_pq_from_selected
-from mathematical_clause import MathematicalClause
+from generic_qaoa.clause import CombinatoricsClause, MathematicalClause
+from generic_qaoa.utils import get_pq_from_selected
 from vqf.vqf.preprocessing import create_clauses, factor_56153, factor_291311
-from generic_qaoa import *
-
+from generic_qaoa import GenericQaoa
 if __name__ == '__main__':
     # example for MaxCut
     # clauses = [CombinatoricsClause([0], [1]), CombinatoricsClause([1], [0]), CombinatoricsClause([2], [1]), CombinatoricsClause([1], [2]),

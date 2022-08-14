@@ -1,8 +1,6 @@
-from typing import Callable
+from sympy import Symbol
 
-from sympy import *
-
-from clause import Clause
+from .clause_interface import Clause
 
 
 def _parse_mathmatical_caluse_into_hamiltonian(clauses, symbol_to_qubit: dict):
