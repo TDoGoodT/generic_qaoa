@@ -14,7 +14,7 @@ def _parse_literals_into_hamiltonian(one_literals, zero_literals) -> Symbol:
         new_clause *= sym
     for sym in zero_symbols:
         new_clause *= sym
-    return -new_clause.expand()
+    return new_clause.expand()
 
 
 class CombinatoricsClause(Clause):

@@ -1,9 +1,11 @@
 from abc import abstractmethod
+from sympy import Symbol
+
 
 class Clause:
     @property
     @abstractmethod
-    def only_z_clause(self):
+    def only_z_clause(self) -> Symbol:
         pass
 
     def objective_func(self, selected_bitstring) -> float:
