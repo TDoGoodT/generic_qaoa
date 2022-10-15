@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "generic_qaoa"
-version = "0.1.2"
+version = "0.1.3"
 description = ""
 authors = ["Snir Bachar <snir@quantum-machines.co>"]
 
