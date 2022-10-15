@@ -13,7 +13,7 @@ if __name__ == '__main__':
                        _clauses=clauses,
                        _qbits=range(4),
                        _grid_size=10,
-                       _simulate=True)
+                       simulate=True)
     circ = qaoa.qaoa_circuit
     circ.draw()
     qaoa.run()
@@ -43,7 +43,7 @@ if __name__ == '__main__':
                            _clauses=final_clauses,
                            _qbits=range(len(free_symbols)),
                            _grid_size=8,
-                           _simulate=True)
+                           simulate=True)
 
     circ = vqf_qaoa.qaoa_circuit
     vqf_qaoa.run()

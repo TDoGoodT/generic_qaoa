@@ -9,6 +9,7 @@ import numpy as np
 from qiskit import Aer, IBMQ, execute
 
 from .qaoa_circuit import QaoaCircuitFactory
+from ..clause import Clause
 
 SIMULATOR_ENGINE = 'aer_simulator'
 REAL_ENGINE = ''
@@ -46,7 +47,7 @@ class QaoaResults:
 @dataclasses.dataclass
 class QaoaCircuitComponent(object):
     _p: int
-    _clauses: List
+    _clauses: List[Clause]
     _qbits: List
     _grid_size: int = 5
     _minimize_method: str = 'COBYLA'

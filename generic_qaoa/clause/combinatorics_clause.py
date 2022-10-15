@@ -22,6 +22,6 @@ class CombinatoricsClause(Clause):
         self._hamiltonian = _parse_literals_into_hamiltonian(one_literals, zero_literals)
 
     @property
-    def only_z_clause(self):
+    def hamiltonian(self):
         return self._hamiltonian
 

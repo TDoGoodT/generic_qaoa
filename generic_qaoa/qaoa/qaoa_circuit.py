@@ -73,7 +73,7 @@ class QaoaCircuitFactory(object):
 
         def add_prepare_gate(self, clauses, angle):
             for clause in clauses:
-                self._append_clause_to_circuit(clause.only_z_clause, angle)
+                self._append_clause_to_circuit(clause.hamiltonian, angle)
 
         def add_mix_gate(self, angle, qubits_indexes):
             for q_idx in qubits_indexes:
