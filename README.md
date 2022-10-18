@@ -39,7 +39,7 @@ clauses = [
 qaoa = GenericQaoa(_p=2,
                    _clauses=clauses,
                    _qbits=range(4),
-                   _simulate=True)
+                   simulate=True)
 circ = qaoa.qaoa_circuit
 print(circ)
 ```
@@ -75,7 +75,7 @@ vqf = GenericQaoa(_p=3,
                   _clauses=final_clauses,
                   _qbits=range(len(free_symbols)),
                   _grid_size=8,
-                  _simulate=True)
+                  simulate=True)
 
 vqf.run()
 ```
